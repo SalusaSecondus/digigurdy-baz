@@ -537,7 +537,8 @@ class GurdyCrank {
     };
 
     bool isDetected() {
-      return (deviations < 10);
+      //return (deviations < 10);
+      return true;
     };
 
     void refreshBuzz() {
