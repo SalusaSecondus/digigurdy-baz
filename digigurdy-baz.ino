@@ -17,7 +17,7 @@
 // VIBRATO: I use a long-delay, very slow vibrato on the melody strings.  This variable controls how
 // much vibrato (how much modulation like with a physical mod wheel on a MIDI keyboard) to send.
 // Setting it to 0 sends no modulation.  Max is 127.  I use 16...
-const int MELODY_VIBRATO = 0;
+const int MELODY_VIBRATO = 16;
 
 // Cranking and buzz behavior:
 
@@ -35,13 +35,13 @@ const int MELODY_VIBRATO = 0;
 //
 // Teensy3.5 @120mHz = 4000
 // Teensy4.1 @600mHz = 11000
-const int SPIN_SAMPLES = 4000;
+const int SPIN_SAMPLES = 3500;
 
 // This is the high voltage mark.  It determines how easily the crank makes the drones start.
 // With my crank, I can go as low as 3, but it gets ridiculously sensitive (bumping into your gurdy
 // agitates the crank enough to register).  It doesn't need to be very high, though, unless you want
 // you crank to have a "minmum speed limit" before it starts sounding.
-const int V_THRESHOLD = 8;
+const int V_THRESHOLD = 1;
 
 // (the equivalent of V_THRESHOLD for buzzing is what the knob does, so there's no variable for it).
 
@@ -55,10 +55,10 @@ const int V_THRESHOLD = 8;
 // how quickly the crank kicks on when you start spinning, and should be at least a few times larger
 // than the SPIN_DECAY.  SPIN_THRESHOLD influences how quickly the noise cuts off after you stop
 // spinning.
-const int MAX_SPIN = 15;
-const int SPIN_WEIGHT = 15;
-const int SPIN_DECAY = 1;
-const int SPIN_THRESHOLD = 2;
+const int MAX_SPIN = 250;
+const int SPIN_WEIGHT = 10;
+const int SPIN_DECAY = 5;
+const int SPIN_THRESHOLD = 15;
 
 // Buzzing works sort of the same way except the buzz counter jumps immediately to the
 // BUZZ_SMOOTHING value and then begins to decay by BUZZ_DECAY.  Any positive "buzz"
@@ -425,7 +425,7 @@ class BuzzKnob {
     // Returns an adjusted voltage value suitible
     // for comparing with the crank's.
     float getVoltage() {
-      return (float)(knob_voltage / 3);
+      return (float)(knob_voltage / 2);
     };
 };
 
@@ -497,6 +497,7 @@ class GurdyCrank {
     void beginPolling() {
       myadc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_LOW_SPEED);
       myadc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_LOW_SPEED);
+      myadc->adc0->recalibrate();
       myadc->adc0->startContinuous(voltage_pin);
     };
 
@@ -521,7 +522,9 @@ class GurdyCrank {
       for (int i = 0; i < num_samples; i++) {
         samples[i] = myadc->adc0->analogReadContinuous();
         sample_sum += samples[i];
-        delay(1);
+
+        Serial.print(" ");
+        Serial.print(samples[i]);
       };
 
       // Get the average voltage
@@ -534,6 +537,9 @@ class GurdyCrank {
 
       // The square root of the average of *that* is the stardard devitaion.
       deviations = sqrt(squared_sum / float(num_samples));
+
+      Serial.print("Dev: ");
+      Serial.println(deviations);
     };
 
     bool isDetected() {
@@ -603,6 +609,7 @@ class GurdyCrank {
         // Update the knob first.
         myKnob->update();
         refreshBuzz();
+        // myadc->adc0->recalibrate();
 
         // Poll the crank voltage a few thousand times real quick...
         for (int x = 0; x < spin_samples; x++) {
@@ -612,6 +619,9 @@ class GurdyCrank {
         // The voltage reading we're using is the average of those.
         crank_voltage = sample_total / spin_samples;
         sample_total = 0;
+
+        Serial.print("\nVoltage: ");
+        Serial.print(crank_voltage);
 
         // Based on that voltage, we either bump up the spin by the spin_weight,
         // or we let it decay.
@@ -1036,11 +1046,11 @@ void setup() {
   display.display();
   delay(1000);
 
-  // // Un-comment to print yourself debugging messages to the Teensyduino
-  // // serial console.
-  // Serial.begin(38400);
-  // delay(1000);
-  // Serial.println("Hello.");
+  // Un-comment to print yourself debugging messages to the Teensyduino
+  // serial console.
+  Serial.begin(38400);
+  delay(1000);
+  Serial.println("Hello.");
 
   myMIDI = new MidiInterface<SerialMIDI<HardwareSerial>>((SerialMIDI<HardwareSerial>&)mySerialMIDI);
   myMIDI->begin();
