@@ -1,7 +1,7 @@
 
 // ALL USERS!!! Uncomment one of these lines depending on what kind of OLED screen you have.
-#define WHITE_OLED
-//#define BLUE_OLED
+//#define WHITE_OLED
+#define BLUE_OLED
 
 // VIBRATO: I use a long-delay, very slow vibrato on the melody strings.  This variable controls how
 // much vibrato (how much modulation like with a physical mod wheel on a MIDI keyboard) to send.
